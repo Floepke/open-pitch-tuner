@@ -1,0 +1,142 @@
+/* 
+    OPT - project
+    This file is part of the open piano tuner project.
+    The goal is to create a professional piano tuner
+    that measures inharmonicity and calculates the
+    best possible tuning. Also to share the knowledge
+    for anyone to look into the code how it works.
+        Author: Philip Bergwerf
+
+    This particular file contains all functions to
+    draw the note navigation.
+*/
+
+
+////////////////////////////////////////////////////////
+// the function that draws the current selected note. //
+////////////////////////////////////////////////////////
+fn display_selected_note($x, $y, $w, $h, $key)
+{
+    // draw buttons
+    //fbox($x,$y,$w,$h,#888888)
+    draw_keyboard($x,$y+($h/2),$w,$h/2,$key)
+    line($x+($w/2),$y,$x+($w/2),$y+($h/2),WHITE)
+    line($x,$y,$x+$w,$y,WHITE)
+    // button icons
+    pixi(stepdownimg,$x+($w/4),$y+($h/4),WHITE,1,0.5)
+    pixi(stepupimg,$x+($w/4*3),$y+($h/4),WHITE,1,0.5)
+}
+
+
+fn draw_keyboard($x, $y, $w, $h, $key)
+{
+    $ww = $w-($w/4)
+    // background
+    fbox($x,$y,$w,$h,WHITE)
+
+    // draw black keys
+    fbox($x+($w/88),$y,$w/88,$h/3*2,BLACK)
+    i = 0 while i < 7
+    { 
+        fbox($x+($w/88*(4+(12*i))),$y,$w/88,$h/3*2,BLACK)
+        fbox($x+($w/88*(6+(12*i))),$y,$w/88,$h/3*2,BLACK)
+        fbox($x+($w/88*(9+(12*i))),$y,$w/88,$h/3*2,BLACK)
+        fbox($x+($w/88*(11+(12*i))),$y,$w/88,$h/3*2,BLACK)
+        fbox($x+($w/88*(13+(12*i))),$y,$w/88,$h/3*2,BLACK)
+        i + 1
+    }
+    fbox($x+($w/88*40),$y,$w/88,$h/3*2,#888888)
+    fbox($x+($w/88*42),$y,$w/88,$h/3*2,#888888)
+
+    // draw key
+    fbox($x+($w/88*($key-1)),$y,$w/88,$h,RED)
+}
+
+fn notenum_to_notename($key)
+{
+    if $key < 1 || $key > 88 {ret(0)}
+    if $key == 1 {ret("A")}
+    if $key == 2 {ret("A#")}
+    if $key == 3 {ret("B")}
+    $out = ($key-4) % 12
+    if $out == 0 {$out = "C"}
+    if $out == 1 {$out = "C#"}
+    if $out == 2 {$out = "D"}
+    if $out == 3 {$out = "D#"}
+    if $out == 4 {$out = "E"}
+    if $out == 5 {$out = "F"}
+    if $out == 6 {$out = "F#"}
+    if $out == 7 {$out = "G"}
+    if $out == 8 {$out = "G#"}
+    if $out == 9 {$out = "A"}
+    if $out == 10 {$out = "A#"}
+    if $out == 11 {$out = "B"}
+    ret($out)
+}
+
+fn oct_number($key)
+{
+    $out = 0
+    $count = 10
+    $i = 0 while $i < $key
+    {
+        if $count > 12 {$out + 1; $count = 1}
+        $count + 1
+        $i + 1
+    }
+    if $out == 0 {ret("0")}
+    if $out == 1 {ret("1")}
+    if $out == 2 {ret("2")}
+    if $out == 3 {ret("3")}
+    if $out == 4 {ret("4")}
+    if $out == 5 {ret("5")}
+    if $out == 6 {ret("6")}
+    if $out == 7 {ret("7")}
+    if $out == 8 {ret("8")}
+}
+
+fn pitch_text($x,$y,$w,$h,$key)
+{
+    // draw pitch text on screen
+    $scale = 5
+    t_scale( $scale, $scale, $scale )
+    $note = notenum_to_notename($key)
+    $octn = oct_number($key)
+    $pitch = ""
+    $pitch[0] = 0
+    strcat( $pitch, $note )
+    strcat( $pitch, $octn )
+    print($pitch,0,$y/($scale*10),RED)
+    t_reset()
+}
+
+////////////////////////////////////////////////
+// takes care for the display of tuning mode. //
+////////////////////////////////////////////////
+fn display_tuning_mode($x,$y,$w,$h,$mode)
+{
+    // mode: 0 = 'auto', 1 = 'step', 2 = 'slot'
+    if $mode == 0 
+    {
+        fbox($x,$y,$w/3,$h,WHITE)
+        print("AUTO",$x+($w/6),$y+($h/2),BLACK)
+        print("STEP",$x+($w/12*6),$y+($h/2),#888888)
+        print("LOCK",$x+($w/12*10),$y+($h/2),#888888)
+    }
+    if $mode == 1
+    {
+        fbox($x+($w/3),$y,$w/3,$h,WHITE)
+        print("AUTO",$x+($w/6),$y+($h/2),#888888)
+        print("STEP",$x+($w/12*6),$y+($h/2),BLACK)
+        print("LOCK",$x+($w/12*10),$y+($h/2),#888888)
+    }
+    if $mode == 2
+    {
+        fbox($x+($w/3*2),$y,$w/3*2,$h,WHITE)
+        print("AUTO",$x+($w/6),$y+($h/2),#888888)
+        print("STEP",$x+($w/12*6),$y+($h/2),#888888)
+        print("LOCK",$x+($w/12*10),$y+($h/2),BLACK)
+    }
+    box($x,$y,$w-1,$h,WHITE)
+    box(left,top,xsize-1,ysize,WHITE)
+}

@@ -1,0 +1,93 @@
+/*
+    OPT - project
+    This file is part of the open piano tuner project.
+    The goal is to create a professional piano tuner
+    that measures inharmonicity and calculates the
+    best possible tuning. Also to share the knowledge
+    for anyone to look into the code how it works.
+        Author: Philip Bergwerf
+
+    This particular file contains basic functions that are handy
+    when working with math. It are logic functions that are
+    not complicated. The reason I made it is because when using
+    these functions code will be easier readable.
+    
+    The functions include:
+    * rand_range_float; 'true' random floats in range
+    * rand_range_integer; 'true' random integer in range
+    * lowest; return the lowest number
+    * highest; return the highest number
+    * interpolation
+    * diff; get the difference between two values in a positive number
+    * round; round a number to x decimals
+    * opposite; Returns the opposite
+    * middle; Returns the number in the middle of $x and $y
+*/
+
+
+// To get 'true' random numbers we set the seed using the time
+// from your system.
+rand_seed(get_ticks() / get_seconds())
+
+// Get a random float between $x and $y.
+fn randr($x, $y)
+{
+    $rndm = interpolation(0, 32767, rand())
+    $out = lowest($x, $y) + ($rndm * diff($x, $y))
+    ret($out)
+}
+
+
+// Get a random integer between $x and $y.
+fn randr_int($x, $y)
+{
+    $x = floor($x)
+    $y = ceil($y)
+    $rndm = interpolation(0, 32767, rand())
+    $out = lowest($x, $y) + ($rndm * diff($x, $y))
+    ret(integer($out))
+}
+
+
+// Interpolation; where lies $z in between $x and $y? 
+// Outcome = percentage(0 <--> 1)
+fn interpolation($x, $y, $z) {ret(($z - $x) / ($y - $x))}
+
+
+// Round $x to $d decimals.
+fn round($x, $d)
+{
+    $base = floor($x)
+    $dec = integer(($x - $base) * pow(10, $d)) / pow(10, $d)
+    ret($base + $dec)
+}
+
+
+// Round $x to integer.
+fn integer($x)
+{
+    $base = floor($x)
+    $dec = $x - $base
+    if $dec >= 0.5 {ret($base + 1)}
+    else {ret($base)}
+}
+
+
+// Returns the highest number comparing $x and $y
+fn highest($x, $y) {if $x >= $y {ret($x)} else {ret($y)}}
+
+
+// Returns the lowest number comparing $x and $y
+fn lowest($x, $y) {if $x <= $y {ret($x)} else {ret($y)}}
+
+
+// Get the difference between $x and $y as a positive number.
+fn diff($x, $y) {ret(highest($x, $y) - lowest($x, $y))}
+
+
+// Returns the opposit of $x (-1 becomes +1; +1 becomes -1)
+fn opposit($x) {if $x >= 0 {$out = 0 - $x} else {$out = 0 + diff($x, 0)} ret($out)}
+
+
+// returns the number that's in the middle of $x and $y
+fn middle($x, $y) {ret(lowest($x, $y) + (diff($x, $y) / 2))}

@@ -1,0 +1,108 @@
+/* 
+    OPT - project
+    This file is part of the open piano tuner project.
+    The goal is to create a professional piano tuner
+    that measures inharmonicity and calculates the
+    best possible tuning. Also to share the knowledge
+    for anyone to look into the code how it works.
+        Author: Philip Bergwerf
+
+    This particular file contains the code for pitch detection.
+*/
+
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    if $in_channels >= 0
+    {
+	copy(visual_buf,$in_channels[0])
+    }
+    ret(0) //output is empty
+}
+
+fft_size = 4096
+visual_buf = new(fft_size,1,INT16)
+clean(visual_buf)
+
+// create lists for fft
+im = new(fft_size,1,FLOAT)
+re = new(fft_size,1,FLOAT)
+
+// creating a list with fft frequency
+freq = new(fft_size/2,1,FLOAT)
+clean(freq)
+i = 1 while i < fft_size / 2 + 1
+{
+    freq[i] = 44100 / 2 / fft_size * i
+    i + 1
+}
+
+fn detect_pitch($x,$y,$w,$h)
+{
+    // putting the mic signal to the re[] array
+    i = 0 while i < fft_size
+    {
+        re[i] = visual_buf[i]
+        i + 1
+    }
+    
+    // clean im and doing fft
+    clean(im)
+    fft(0,im,re)
+
+    high = highest_number_in_list(re)
+    // drawing the spectrum (for test purposes)
+    i = 0 while i < fft_size / 2
+    {
+        // get value for color and make list of db
+        $volume = interpolation(0,high,re[i])
+        $volume * 255
+        if $volume > rec_treshold
+        {
+            line(left+i,top+1,left+i,top+$h/6-1,get_color($volume,0,0))
+        }
+        i + 1
+    }
+
+    // detect and return the detected pitch in Hz
+    //lowestdb = lowest_db(re)
+    //printf("%f\n", lowestdb)
+    i = 0 while i < fft_size / 2
+    {
+        if re[i] > rec_treshold
+        {
+            ret(freq[i])
+        }
+        //re[i] = re[i] + opposit(lowestdb)
+        //printf("re: %f\n", re[i])
+        i + 1
+    }
+}
+
+fn lowest_db($list)
+{
+    $out = 10000000000
+    i = 0 while i < fft_size / 2
+    {
+        if $list[i] < $out {$out = $list[i]}
+        i + 1
+    }
+    ret($out)
+}
+
+fn highest_number_in_list($list)
+{
+    $out = -10000000000 // -inf
+    i = 0 while i < fft_size / 2
+    {
+        if $list[i] > $out {$out = $list[i]}
+        i + 1
+    }
+    ret($out)
+}

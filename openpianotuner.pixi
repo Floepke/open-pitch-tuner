@@ -1,0 +1,132 @@
+/* 
+    OPT - project
+    This file is part of the open piano tuner project.
+    The goal is to create a professional piano tuner
+    that measures inharmonicity and calculates the
+    best possible tuning. Also to share the knowledge
+    for anyone to look into the code how it works.
+        Author: Philip Bergwerf
+
+    This particular file is the main code which runs
+    the program.
+*/
+
+// include
+include "include/math.pixi"
+include "include/noteselection.pixi"
+include "include/pitchdetection.pixi"
+
+// screen
+set_pixel_size( WINDOW_XSIZE / 4096 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+// variables
+selkey = 49 // selected key to tune 1...88
+mode = 0 // tuning mode; 0 = auto, 1 = step, 2 = lock
+fps = 60
+a440Hz = 440
+rec_pitch = 440
+rec_treshold = 25
+
+// load icons
+stepdownimg = load("img/stepdown.png")
+stepupimg = load("img/stepup.png")
+
+// pitch detection setup
+set_audio_callback( audio_callback, 0, 44100, INT16, 2 )
+enable_audio_input( 1 )
+
+// mainloop
+while 1
+{   
+    scr = get_screen()
+    xsize = WINDOW_XSIZE
+    ysize = WINDOW_YSIZE
+    left = -xsize/2
+    right = xsize/2
+    top = -ysize/2
+    bottom = ysize/2
+    
+    clear()
+
+    // drawing GUI
+    display_selected_note(left,bottom-(ysize/12*3),xsize,ysize/4,selkey)
+    pitch_text(left,ysize/12*3,xsize,ysize/12,selkey)
+    display_tuning_mode(left,top+(ysize/12*4),xsize,ysize/12,mode)
+
+    // drawing the spectrum and detecting the pitch
+    rec_pitch = detect_pitch(left,top,xsize,ysize/12*4)
+    if rec_pitch > 0 {printf("%f\n", rec_pitch)}
+
+    // strobes system
+
+    // event handling etc...
+    while( get_event() )
+    {
+        if EVT[EVT_TYPE] == EVT_QUIT { halt }
+
+        // on mouseclick STEPDOWN button:
+        if EVT[EVT_TYPE] == EVT_MOUSEBUTTONDOWN && 
+            EVT[EVT_Y] > bottom-(ysize/3) && 
+            EVT[EVT_Y] < bottom-(ysize/6) && 
+            EVT[EVT_X] > left && 
+            EVT[EVT_X] < left+(xsize/2)
+        {
+            selkey - 1
+            if selkey < 1 {selkey = 1}
+        }
+        
+        // on mouseclick STEPUP button:
+        if EVT[EVT_TYPE] == EVT_MOUSEBUTTONDOWN && 
+            EVT[EVT_Y] > bottom-(ysize/3) && 
+            EVT[EVT_Y] < bottom-(ysize/6) && 
+            EVT[EVT_X] > left+(xsize/2) && 
+            EVT[EVT_X] < right
+        {
+            selkey + 1
+            if selkey > 88 {selkey = 88}
+        }
+        
+        // on mouseclick KEYBOARD:
+        if EVT[EVT_TYPE] == EVT_MOUSEBUTTONDOWN && 
+            EVT[EVT_Y] > bottom-(ysize/6) && 
+            EVT[EVT_Y] < bottom && 
+            EVT[EVT_X] > left && 
+            EVT[EVT_X] < right
+        {
+            $x = EVT[EVT_X] + (xsize/2)
+            selkey = floor(interpolation(left,right,EVT[EVT_X])*88) + 1
+        }
+
+        // on mouseclick AUTO button:
+        if EVT[EVT_TYPE] == EVT_MOUSEBUTTONDOWN && 
+            EVT[EVT_Y] > top+(ysize/12*4) && 
+            EVT[EVT_Y] < top+(ysize/12*5) && 
+            EVT[EVT_X] > left && 
+            EVT[EVT_X] < left+(xsize/3)
+        {
+            mode = 0
+        }
+        // on mouseclick STEP button:
+        if EVT[EVT_TYPE] == EVT_MOUSEBUTTONDOWN && 
+            EVT[EVT_Y] > top+(ysize/12*4) && 
+            EVT[EVT_Y] < top+(ysize/12*5) && 
+            EVT[EVT_X] > left+(xsize/3) && 
+            EVT[EVT_X] < left+(xsize/3*2)
+        {
+            mode = 1
+        }
+        // on mouseclick LOCK button:
+        if EVT[EVT_TYPE] == EVT_MOUSEBUTTONDOWN && 
+            EVT[EVT_Y] > top+(ysize/12*4) && 
+            EVT[EVT_Y] < top+(ysize/12*5) && 
+            EVT[EVT_X] > left+(xsize/3*2) && 
+            EVT[EVT_X] < right
+        {
+            mode = 2
+        }
+    }
+    
+    frame()
+    sleep(1000 / fps)
+}
