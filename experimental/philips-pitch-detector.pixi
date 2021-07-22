@@ -110,7 +110,7 @@ fn philipmethod()
         if sw == 1
         {
             printf("sim: %f high: %f\n", sim, high)
-            if sim > prev_sim && sim < high * 0.5
+            if sim > prev_sim && sim < high * 0.4
             {
                 if samp == 0 {ret(-1)}
                 hz = (samp_rate) / (samp)
