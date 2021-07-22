@@ -1,6 +1,22 @@
 set_pixel_size( WINDOW_XSIZE / 1024 )
 resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
 
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    if $in_channels >= 0
+    {
+	copy( visual_buf, $in_channels[ 0 ] )
+    }
+    ret( 0 ) //output is empty
+}
+
 fft_size = 2048
 visual_buf = new( fft_size, 1, INT16 )
 clean( visual_buf )
@@ -23,16 +39,11 @@ left = -xsize/2
 right = xsize/2
 top = -ysize/2
 bottom = ysize/2
-run = 1
 
-//////////////
-// mainloop //
-//////////////
+// mainloop
 while 1
 {
     while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
-
-    clear()
 
     // putting the mic signal to the re[] array
     i = 0 while i < fft_size
@@ -47,56 +58,35 @@ while 1
 
     // drawing the spectrum
     high = highest_number_in_list(re)
-    prev_y = 0
     i = 0 while i < fft_size / 2 - 279
     {
         $strength = interpolation(0,high,re[i])
         //if $strength < 0 {$vol = opposit($strength)}
         $strength * 255
-        
         if $strength > 0 
         {
-            line(left+i-1,prev_y,left+i,bottom-$strength,RED)
-            prev_y = bottom-$strength
+            dot(left+i,bottom-1,get_color($strength,$strength-50,$strength))
         }
         re[i] = $strength
 
         i + 1
     }
-    // copy(scr2,scr)
-    // pixi(scr2,0,-1)
+    copy(scr2,scr)
+    pixi(scr2,0,-1)
 
     frame()
 }
 
-///////////
-// tools //
-///////////
+// tools
 fn interpolation($x, $y, $z) {ret(($z - $x) / ($y - $x))}
 
 fn highest_number_in_list($list)
 {
-    $out = -1 // -inf
+    $out = -10000000000 // -inf
     i = 0 while i < fft_size / 2
     {
         if $list[i] > $out {$out = $list[i]}
         i + 1
     }
     ret($out)
-}
-
-fn audio_callback(
-    $stream, 
-    $userdata, 
-    $channels, 
-    $frames, 
-    $output_time_in_system_ticks, 
-    $in_channels, 
-    $latency_in_frames )
-{
-    if $in_channels >= 0
-    {
-    copy( visual_buf, $in_channels[ 0 ] )
-    }
-    ret( 0 ) //output is empty
 }

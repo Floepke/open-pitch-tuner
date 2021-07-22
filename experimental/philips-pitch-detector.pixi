@@ -31,8 +31,8 @@ xsize = WINDOW_XSIZE
 ysize = WINDOW_YSIZE
 left = -xsize/2
 right = xsize/2
-top = ysize/2
-bottom = -ysize/2
+top = -ysize/2
+bottom = ysize/2
 run = 0
 
 //////////////
@@ -69,41 +69,56 @@ while 1
     waveform times. Then we take the avarage of all those times and
     divide that by one second and we get a Hz outcome from the audio 
     buffer. Don't know for sure if this is something that works well.
+
+    I doesn't work for it's purpose; tuning an instrument. The precision
+    is limited to the sample rate.
 */
 fn philipmethod()
 {
+    // check amplitude. On low amplitude return -1
+    treshold = 0
+    i = 0 while i < 100
+    {
+        if buff[i] > 0.005 || buff[i] < -0.005 {treshold = 1}
+            i + 1
+    }
+
+    if treshold == 0 {ret(0)}
+
     ////////////////////////////////////////////////////////////
     // check-for-similarity-and-return-the-measured-hz system //
     ////////////////////////////////////////////////////////////
 
     // checking similarity
-    samplen = 0
     prev_sim = 0
     samp = 0
-    count = 0
-    breakk = 0
     hz = 0
-    x = 0 while x < 1000
+    sw = 0
+    high = 0
+    x = 0 while x < samp20
     {
         sim = 0
-        high = 0
-        i = 0 while i < samp20 / 2
+        i = 0 while i < samp20
         {
-            sim + (buff[x+i]-buff[i])
+            sim + diff(buff[x+i],buff[i])
             i + 1
         }
-        sim / (samp20/2)
         // if the peak is going; check when the value
         // is going up again.
-        if sim > high {high = sim}
-        if sim < 0 
+        if sim > prev_sim && sw == 0 {high = sim}
+        if sim < prev_sim {sw = 1}
+        if sw == 1
         {
-            if samp == 0 {break}
-            hz = samp_rate / samp
-            break
+            printf("sim: %f high: %f\n", sim, high)
+            if sim > prev_sim && sim < high * 0.5
+            {
+                if samp == 0 {ret(-1)}
+                hz = (samp_rate) / (samp)
+                break
+            }
         }
-        printf("%f\n", sim)
-        dot(left+x,(sim*100000))
+        
+        line(left+x,bottom-(sim*10),left+x-1,bottom-(prev_sim*10),RED)
         samp + 1
         prev_sim = sim
         x + 1
@@ -115,8 +130,6 @@ fn philipmethod()
 ///////////
 // TOOLS //
 ///////////
-fn interpolation($x, $y, $z) {ret(($z - $x) / ($y - $x))}
-
 // Returns the highest number comparing $x and $y
 fn highest($x, $y) {if $x >= $y {ret($x)} else {ret($y)}}
 
@@ -124,30 +137,4 @@ fn highest($x, $y) {if $x >= $y {ret($x)} else {ret($y)}}
 fn lowest($x, $y) {if $x <= $y {ret($x)} else {ret($y)}}
 
 // Get the difference between $x and $y as a positive number.
-fn diff($x, $y) {ret(lowest($x, $y) - highest($x, $y))}
-
-// Returns the opposit of $x (-1 becomes +1; +1 becomes -1)
-fn opposit($x) {if $x >= 0 {$out = 0 - $x} else {$out = 0 + diff($x, 0)} ret($out)}
-
-// returns the number that's in the middle of $x and $y
-fn middle($x, $y) {ret(lowest($x, $y) + (diff($x, $y) / 2))}
-
-// Round $x to $d decimals.
-fn round($x, $d)
-{
-    $base = floor($x)
-    $dec = integer(($x - $base) * pow(10, $d)) / pow(10, $d)
-    ret($base + $dec)
-}
-
-// Round $x to integer.
-fn integer($x)
-{
-    $base = floor($x)
-    $dec = $x - $base
-    if $dec >= 0.5 {ret($base + 1)}
-    else {ret($base)}
-}
-
-// returns 1 if value $x is around $y with a space of $space
-fn around($x,$y,$space) {if diff($x, $y) >= $space {ret(0)} else {ret(1)}}
+fn diff($x, $y) {ret(highest($x, $y) - lowest($x, $y))}
