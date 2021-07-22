@@ -1,0 +1,102 @@
+set_pixel_size( WINDOW_XSIZE / 1024 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+fft_size = 2048
+visual_buf = new( fft_size, 1, INT16 )
+clean( visual_buf )
+
+// create lists for fft
+im = new( fft_size, 1, FLOAT )
+re = new( fft_size, 1, FLOAT )
+
+fps = 60
+
+set_audio_callback( audio_callback, 0, 44100, INT16, 2 )
+enable_audio_input( 1 )
+
+// creating a list with fft db
+
+scr = get_screen()
+xsize = WINDOW_XSIZE
+ysize = WINDOW_YSIZE
+left = -xsize/2
+right = xsize/2
+top = -ysize/2
+bottom = ysize/2
+run = 1
+
+//////////////
+// mainloop //
+//////////////
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    clear()
+
+    // putting the mic signal to the re[] array
+    i = 0 while i < fft_size
+    {
+        re[i] = visual_buf[i]
+        i + 1
+    }
+    
+    // clean im and doing fft
+    clean( im )
+    fft( 0, im, re )
+
+    // drawing the spectrum
+    high = highest_number_in_list(re)
+    prev_y = 0
+    i = 0 while i < fft_size / 2 - 279
+    {
+        $strength = interpolation(0,high,re[i])
+        //if $strength < 0 {$vol = opposit($strength)}
+        $strength * 255
+        
+        if $strength > 0 
+        {
+            line(left+i-1,prev_y,left+i,bottom-$strength,RED)
+            prev_y = bottom-$strength
+        }
+        re[i] = $strength
+
+        i + 1
+    }
+    // copy(scr2,scr)
+    // pixi(scr2,0,-1)
+
+    frame()
+}
+
+///////////
+// tools //
+///////////
+fn interpolation($x, $y, $z) {ret(($z - $x) / ($y - $x))}
+
+fn highest_number_in_list($list)
+{
+    $out = -1 // -inf
+    i = 0 while i < fft_size / 2
+    {
+        if $list[i] > $out {$out = $list[i]}
+        i + 1
+    }
+    ret($out)
+}
+
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    if $in_channels >= 0
+    {
+    copy( visual_buf, $in_channels[ 0 ] )
+    }
+    ret( 0 ) //output is empty
+}

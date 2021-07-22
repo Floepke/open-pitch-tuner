@@ -1,0 +1,153 @@
+set_pixel_size( WINDOW_XSIZE / 2205 )
+resize( get_screen(), WINDOW_XSIZE, WINDOW_YSIZE )
+
+// enable audio input and buffer
+buff_size = 4096 * 2
+buff = new( buff_size, 1, FLOAT )
+clean( buff )
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames )
+{
+    if $in_channels >= 0
+    {
+    copy( buff, $in_channels[ 0 ] )
+    }
+    ret( 0 ) //output is empty
+}
+set_audio_callback( audio_callback, 0, samp_rate, FLOAT, 2 )
+enable_audio_input( 1 )
+
+// variable storage
+samp_rate = 44100
+samp20 = samp_rate / 20
+scr = get_screen()
+xsize = WINDOW_XSIZE
+ysize = WINDOW_YSIZE
+left = -xsize/2
+right = xsize/2
+top = ysize/2
+bottom = -ysize/2
+run = 0
+
+//////////////
+// MAINLOOP //
+//////////////
+while 1
+{
+    while( get_event() ) { if EVT[ EVT_TYPE ] == EVT_QUIT { halt } }
+
+    clear()
+
+    // detecting pitch and writing to the display
+    frequency = philipmethod()
+    $frequency = ""
+    num_to_str($frequency,frequency)
+    t_scale(2,2,2)
+    print($frequency,0,0,RED)
+    print("Philip frequency analyser",0,10,RED)
+    t_reset()
+
+    frame()
+    run + 0
+}
+
+//////////////
+// ANALYSER //
+//////////////
+/*
+    This is a own method for detecting pitch in the time domain.
+    We compare a copy of the orginal signal and move it forward in
+    time. Every time we move it forward we check the 'similarity'.
+    When the similarity is going down again we have the time/duration
+    of one waveform and we repeat the process so we get multiple
+    waveform times. Then we take the avarage of all those times and
+    divide that by one second and we get a Hz outcome from the audio 
+    buffer. Don't know for sure if this is something that works well.
+*/
+fn philipmethod()
+{
+    ////////////////////////////////////////////////////////////
+    // check-for-similarity-and-return-the-measured-hz system //
+    ////////////////////////////////////////////////////////////
+
+    // checking similarity
+    samplen = 0
+    prev_sim = 0
+    samp = 0
+    count = 0
+    breakk = 0
+    hz = 0
+    x = 0 while x < 1000
+    {
+        sim = 0
+        high = 0
+        i = 0 while i < samp20 / 2
+        {
+            sim + (buff[x+i]-buff[i])
+            i + 1
+        }
+        sim / (samp20/2)
+        // if the peak is going; check when the value
+        // is going up again.
+        if sim > high {high = sim}
+        if sim < 0 
+        {
+            if samp == 0 {break}
+            hz = samp_rate / samp
+            break
+        }
+        printf("%f\n", sim)
+        dot(left+x,(sim*100000))
+        samp + 1
+        prev_sim = sim
+        x + 1
+    }
+    ret(hz)
+}
+
+
+///////////
+// TOOLS //
+///////////
+fn interpolation($x, $y, $z) {ret(($z - $x) / ($y - $x))}
+
+// Returns the highest number comparing $x and $y
+fn highest($x, $y) {if $x >= $y {ret($x)} else {ret($y)}}
+
+// Returns the lowest number comparing $x and $y
+fn lowest($x, $y) {if $x <= $y {ret($x)} else {ret($y)}}
+
+// Get the difference between $x and $y as a positive number.
+fn diff($x, $y) {ret(lowest($x, $y) - highest($x, $y))}
+
+// Returns the opposit of $x (-1 becomes +1; +1 becomes -1)
+fn opposit($x) {if $x >= 0 {$out = 0 - $x} else {$out = 0 + diff($x, 0)} ret($out)}
+
+// returns the number that's in the middle of $x and $y
+fn middle($x, $y) {ret(lowest($x, $y) + (diff($x, $y) / 2))}
+
+// Round $x to $d decimals.
+fn round($x, $d)
+{
+    $base = floor($x)
+    $dec = integer(($x - $base) * pow(10, $d)) / pow(10, $d)
+    ret($base + $dec)
+}
+
+// Round $x to integer.
+fn integer($x)
+{
+    $base = floor($x)
+    $dec = $x - $base
+    if $dec >= 0.5 {ret($base + 1)}
+    else {ret($base)}
+}
+
+// returns 1 if value $x is around $y with a space of $space
+fn around($x,$y,$space) {if diff($x, $y) >= $space {ret(0)} else {ret(1)}}
