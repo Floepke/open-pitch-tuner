@@ -66,8 +66,8 @@ fn zero_crossing_analyser($sig)
     $l = 1
     $x = 0 while $x < fft_size
     {
-        if $sig[i] > $h {$h = $sig[i]}
-        if $sig[i] < $l {$l = $sig[i]}
+        if $sig[$x] > $h {$h = $sig[$x]}
+        if $sig[$x] < $l {$l = $sig[$x]}
         $x + 1
     }
     $dc = middle($l,$h)
